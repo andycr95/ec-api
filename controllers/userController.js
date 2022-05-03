@@ -1,104 +1,14 @@
 const userCtrl = {}
 const User = require('../models/user')
 const escapeRegex = require('../utils/regex-escape');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const { parseJWt } = require('../utils/jwt');
 
 
 userCtrl.getUsers = async (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
-    try {
-        const resPerPage = 5; // results per page
-        const page = req.query.page || 1; // Page 
-        const resp = [];
-        const users = await User.find().skip((resPerPage * page) - resPerPage).limit(resPerPage).sort({ '_id': -1 });
-        const num = await User.countDocuments();
-        for (let i = 0; i < users.length; i++) {
-            const u = users[i];
-            resp.push({
-                _id: u._id,
-                name: u.name.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))),
-                email: u.email,
-                typeUser: u.typeUser,
-                phoneNumber : u.phoneNumber
-            });
-        }
-        res.status(200).json({
-            data: resp,
-            total: num,
-            limit: resPerPage,
-            totalPages: Math.ceil(num / resPerPage),
-            page: page
-        });
-    } catch (error) {
-        next(error)
-    }
-}
-
-userCtrl.getUser = async (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
-    try {
-        const user = await User.findById(req.params.id).select('-password');
-        res.status(200).json(user);
-    } catch (error) {
-        next(error)
-    }
-}
-
-userCtrl.signIn = async (req, res) => {
-    const { password, email } = req.body;
-    const user = await User.findOne({email});
-    if (!user) {
-        res.status(400).json({
-            auth: false,
-            message: 'Not user found'
-        });
-    } else {
-        // Match password´s user
-        const match = await user.matchPassword(password);
-        if(match) {
-            const token = jwt.sign({id: user._id, typeUser: user.typeUser}, 'shhhhh', {
-                expiresIn: 60 * 30
-            });
-            const us = {
-                _id: user._id,
-                name: user.name.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))),
-                email: user.email
-            }
-            res.status(200).json({
-                auth: true,
-                message: 'User logged',
-                user: us,
-                token
-            });
-        } else {
-            res.status(400).json({
-                auth: false,
-                message: 'Incorrect password'
-            });
-        }
-    }
-};
-
-userCtrl.searchUsers = async (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
+    const token = req.headers['authorization'].substring(7);
+    const decoded =  parseJWt(token)
+    if (!token || decoded === null) return res.status(401).json({auth: false,message: 'Unauthorized, token is required'})
     try {
         const searchQuery = req.query.search
         const regex = new RegExp(escapeRegex(req.query.search), 'gi');
@@ -129,15 +39,58 @@ userCtrl.searchUsers = async (req, res, next) => {
     }
 }
 
+userCtrl.getUser = async (req, res, next) => {
+    const token = req.headers['authorization'].substring(7);
+    const decoded =  parseJWt(token)
+    if (!token || decoded === null) return res.status(401).json({auth: false,message: 'Unauthorized, token is required'})
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        res.status(200).json(user);
+    } catch (error) {
+        next(error)
+    }
+}
+
+userCtrl.signIn = async (req, res) => {
+    const { password, email } = req.body;
+    const user = await User.findOne({email});
+    if (!user) {
+        res.status(400).json({
+            auth: false,
+            message: 'Not user found'
+        });
+    } else {
+        // Match password´s user
+        const match = await user.matchPassword(password);
+        if(match) {
+            const token = jwt.sign({id: user._id, typeUser: user.typeUser}, 'shhhhh', {
+                expiresIn: 60 * 10
+            });
+            const us = {
+                _id: user._id,
+                name: user.name.replace(/\w\S*/g, (w) => (w.replace(/^\w/, (c) => c.toUpperCase()))),
+                email: user.email
+            }
+            res.status(200).json({
+                auth: true,
+                message: 'User logged',
+                user: us,
+                token
+            });
+        } else {
+            res.status(400).json({
+                auth: false,
+                message: 'Incorrect password'
+            });
+        }
+    }
+};
+
 userCtrl.createUser = async (req, res, next) => {
     const token = req.headers['authorization'].substring(7);
-    const decoded = await jwt.verify(token, 'shhhhh');
-    if (!token || decoded.typeUser !== 'admin') {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
+    const decoded =  parseJWt(token)
+    if (!token || decoded === null) return res.status(401).json({auth: false,message: 'Unauthorized, token is required'})
+    if (decoded.typeUser !== 'admin') return res.status(401).json({auth: false,message: 'You are unauthorized for this action'})
     const { body: user } = req
     const email = await User.findOne({email: user.email});
     if (email) res.status(409).json({error: 'Bad Request', statusCode: 409, message: 'This email is already in use.', });
@@ -173,13 +126,9 @@ userCtrl.createUser = async (req, res, next) => {
 
 userCtrl.updateUser = async (req, res, next) => {
     const token = req.headers['authorization'].substring(7);
-    const decoded = await jwt.verify(token, 'shhhhh');
-    if (!token || decoded.typeUser !== 'admin') {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
+    const decoded =  parseJWt(token)
+    if (!token || decoded === null) return res.status(401).json({auth: false,message: 'Unauthorized, token is required'})
+    if (decoded.typeUser !== 'admin') return res.status(401).json({auth: false,message: 'You are unauthorized for this action'})
     const { id } = req.params
     const user = req.body
     const Byid = await User.findById(id);
@@ -206,13 +155,9 @@ userCtrl.updateUser = async (req, res, next) => {
 
 userCtrl.deleteUser = async (req, res) => {
     const token = req.headers['authorization'].substring(7);
-    const decoded = await jwt.verify(token, 'shhhhh');
-    if (!token || decoded.typeUser !== 'admin') {
-        return res.status(401).json({
-            auth: false,
-            message: 'You are unauthorized for this action'
-        })
-    }
+    const decoded =  parseJWt(token)
+    if (!token || decoded === null) return res.status(401).json({auth: false,message: 'Unauthorized, token is required'})
+    if (decoded.typeUser !== 'admin') return res.status(401).json({auth: false,message: 'You are unauthorized for this action'})
     const { id } = req.params
     const Byid = await User.findById(id);
     if (!Byid) res.status(409).json({error: 'Bad Request', statusCode: 400, message: 'This user does not exist.', });

@@ -10,7 +10,6 @@ function userApi(app) {
     router.get('/', userController.getUsers);
     router.get('/profile/:id', validationHandlers({ id: userIdSchema }, 'params'), userController.getUser);
     router.post('/login', userController.signIn);
-    router.get('/search', userController.searchUsers);
     router.post('/', validationHandlers(createUserSchema), userController.createUser);
     router.put('/:id', validationHandlers({ id: userIdSchema }, 'params'), validationHandlers(updateUserSchema), userController.updateUser);
     router.delete('/:id', validationHandlers({ id: userIdSchema }, 'params'), userController.deleteUser)

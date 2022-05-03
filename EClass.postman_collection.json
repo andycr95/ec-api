@@ -28,7 +28,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:3000/api/users?page=1",
+					"raw": "http://localhost:3000/api/users?page=2",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -41,7 +41,7 @@
 					"query": [
 						{
 							"key": "page",
-							"value": "1"
+							"value": "2"
 						}
 					]
 				}
@@ -102,7 +102,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:3000/api/users/search?page=1&search=3128",
+					"raw": "http://localhost:3000/api/users?page=2&search=madr",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -110,17 +110,16 @@
 					"port": "3000",
 					"path": [
 						"api",
-						"users",
-						"search"
+						"users"
 					],
 					"query": [
 						{
 							"key": "page",
-							"value": "1"
+							"value": "2"
 						},
 						{
 							"key": "search",
-							"value": "3128"
+							"value": "madr"
 						}
 					]
 				}
@@ -136,7 +135,7 @@
 						"exec": [
 							"var jsonData = pm.response.json();",
 							"pm.globals.set(\"token\", jsonData.token);",
-							"console.log(pm.globals)"
+							"console.log(pm.globals.get(\"token\"));"
 						],
 						"type": "text/javascript"
 					}
@@ -147,7 +146,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"email\" : \"lukam@madrid.com\",\n    \"password\" : \"12345678\"\n}",
+					"raw": "{\n    \"email\" : \"andycr95@icloud.com\",\n    \"password\" : \"12345678\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -187,7 +186,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"name\" : \"Mariano Diaz\",\n    \"email\" : \"marianod@madrid.com\",\n    \"password\" : \"12345678\", \n    \"typeUser\" : \"visit\",\n    \"phoneNumber\": \"3128958689\"\n}",
+					"raw": "{\n    \"name\" : \"Vinicious Jr\",\n    \"email\" : \"vinijr@madrid.com\",\n    \"password\" : \"12345678\", \n    \"typeUser\" : \"visit\",\n    \"phoneNumber\": \"122233488\"\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -303,7 +302,6 @@
 	],
 	"variable": [
 		{
-			"key": "token",
 			"value": "",
 			"type": "string"
 		}
